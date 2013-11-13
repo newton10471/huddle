@@ -1,8 +1,10 @@
 require 'test_helper'
 
+
 class StatusReportsControllerTest < ActionController::TestCase
   setup do
     @status_report = status_reports(:one)
+    login_as_one
   end
 
   test "should get index" do
@@ -50,8 +52,6 @@ class StatusReportsControllerTest < ActionController::TestCase
 	test "creation of status reports with data" do
 		assert_difference('StatusReport.count', 1) do
 			post :create, :status_report => {
-				:project_id => projects(:one).to_param,
-				:user_id => users(:one).to_param,
 				:yesterday => "I did stuff",
 				:today => "I'll do stuff"}
 		end
@@ -59,5 +59,18 @@ class StatusReportsControllerTest < ActionController::TestCase
 		assert_equal(users(:one).id, actual.user.id)
 		assert_equal(Date.today.to_s(:db), actual.status_date.to_s(:db))
 		assert_redirected_to status_report_path(actual)
+	end
+
+	test "redirect and logout if the user tries to snipe a user id" do 
+		noel = User.create!(:email => "railsprescriptions@gmail.com", :password => "banana77", :password_confirmation => "banana77")
+		set_current_project(:one)
+		assert_no_difference('StatusReport.count') do 
+			post :create, :status_report => {
+				:user_id => noel.id,
+				:yesterday => "I did stuff",
+				:today => "I'll do stuff"}
+		end
+		assert_nil session[:user_id]
+		assert_redirected_to(new_user_session_path)
 	end
 end
